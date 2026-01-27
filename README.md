@@ -16,8 +16,9 @@ This project implements a simulation of a Flexible Joint Manipulator (FJM) to co
     - `nominal_gainK.m`: Computes the nominal observer gain (requires Control System Toolbox).
 - `utils/`: Utility functions.
     - `disturbance_generator.m`: Generates measurement noise and outliers.
-    - `plot_time_domain.m`: Plotting function for time-domain results.
+    - `plot_time_domain_comparison.m`: Plotting function for time-domain results.
     - `apply_custom_style.m`: Styling function for boxplots.
+    - 'run_rmse_experiment.m' : RMSE calculation.
 
 ## Prerequisites
 
