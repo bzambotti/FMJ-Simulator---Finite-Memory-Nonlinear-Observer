@@ -189,54 +189,7 @@ if RUN_MONTE_CARLO
         results = zeros(N_RUNS, num_cols);
         
         parfor run = 1:N_RUNS
-            local_res = zeros(1, num_cols);
-            
-            % Random Init
-            bound = 0.5;
-            init_err = (rand(4,1) - 0.5) * 2 * bound; 
-            
-            % True Trajectory
-            x_t = zeros(4, N);
-            
-            % Noise Generation
-            nz = disturbance_generator(20, dwell, N, 2);
-            
-            % Simulate Plant
-            for k = 1:N-1
-                u_k = 2 * sin(4 * k * T_s);
-                x_t(:, k+1) = simulate_FMJ(x_t(:, k), u_k, params);
-            end
-            
-            % 1. Nominal Observer
-            x_h = zeros(4, N); 
-            x_h(:,1) = x_t(:,1) - init_err;
-            
-            for k = 1:N-1
-                u_k = 2 * sin(4 * k * T_s);
-                y_k = C * x_t(:, k) + nz(:, k);
-                x_h(:, k+1) = observer_FMJ(x_h(:, k), u_k, y_k, params);
-            end
-            local_res(1) = sqrt(mean(vecnorm(x_t - x_h).^2)); 
-            
-            % 2. Stubborn Variants
-            for j = 1:length(theta_test)
-                p_v = params;
-                p_v.stubborn.Theta = theta_test(j);
-                
-                x_s = zeros(4, N); 
-                x_s(:,1) = x_t(:,1) - init_err;
-                Sig_v = max(abs(C * init_err)) * ones(params.stubborn.tau, 1);
-                
-                for k = 1:N-1
-                    u_k = 2 * sin(4 * k * T_s);
-                    y_k = C * x_t(:, k) + nz(:, k);
-                    [x_s(:, k+1), Sig_v, ~] = observer_stubborn_finite_memory(...
-                        x_s(:, k), u_k, y_k, Sig_v, p_v);
-                end
-                local_res(j+1) = sqrt(mean(vecnorm(x_t - x_s).^2));
-            end
-            
-            results(run, :) = local_res;
+            results(run, :) = run_rmse_experiment(params, N, T_s, f_bar, dwell, theta_test);
         end
         
         % --- PLOTTING BOXPLOTS ---
@@ -278,68 +231,25 @@ if RUN_BREAKDOWN
     % Use T_dwell = 5 (Standard valid condition)
     Tdwell_BD = 5;
     
-    % Pre-calculate Nominal Baseline once (it doesn't change with Theta)
-    fprintf('  Calculating baseline...\n');
-    rmse_nom_base = zeros(N_TEST_RUNS, 1);
+    % Storage for results: [Nominal, Theta1, Theta2, ...]
+    all_results = zeros(N_TEST_RUNS, 1 + length(theta_sweep));
     
-    % We need to store seeds or re-generate same noise for paired test?
-    % For Breakdown analysis, we re-run loop cleanly.
-    
+    fprintf('  Running parallel simulations...\n');
     parfor run = 1:N_TEST_RUNS
-        % Setup run (same logic as MC)
-        bound = 0.5;
-        init_err = (rand(4,1) - 0.5) * 2 * bound; 
-        nz = disturbance_generator(20, Tdwell_BD, N, 2);
-        
-        % Plant
-        x_t = zeros(4, N);
-        for k=1:N-1, x_t(:,k+1)=simulate_FMJ(x_t(:,k), 2*sin(4*k*T_s), params); end
-        
-        % Nominal Observer
-        x_h = zeros(4, N); x_h(:,1)=x_t(:,1)-init_err;
-        for k=1:N-1
-             u=2*sin(4*k*T_s); y=C*x_t(:,k)+nz(:,k);
-             x_h(:,k+1)=observer_FMJ(x_h(:,k),u,y,params);
-        end
-        rmse_nom_base(run) = sqrt(mean(vecnorm(x_t-x_h).^2));
+        all_results(run, :) = run_rmse_experiment(params, N, T_s, f_bar, Tdwell_BD, theta_sweep);
     end
 
-    % Loop over Theta values
+    rmse_nom_base = all_results(:, 1);
+    rmse_stub_matrix = all_results(:, 2:end);
+
+    % Loop over Theta values for statistical test
     for i = 1:length(theta_sweep)
         th_curr = theta_sweep(i);
-        rmse_stub_curr = zeros(N_TEST_RUNS, 1);
+        rmse_stub_curr = rmse_stub_matrix(:, i);
         
-        % We must re-generate SIMILAR statistical conditions.
-        % Ideally, we should reuse the exact same noise matrix, but for 
-        % statistical breakdown across 200 runs, independent sampling is ok 
-        % IF we use 'ranksum' (unpaired) or if we are careful.
-        % Let's use simplified re-generation for speed/clarity here.
-        
-        parfor run = 1:N_TEST_RUNS
-            % Re-gen (Statistically identical conditions)
-            bound = 0.5;
-            init_err = (rand(4,1) - 0.5) * 2 * bound; 
-            nz = disturbance_generator(20, Tdwell_BD, N, 2);
-            
-            % Plant
-            x_t = zeros(4, N);
-            for k=1:N-1, x_t(:,k+1)=simulate_FMJ(x_t(:,k), 2*sin(4*k*T_s), params); end
-            
-            % Stubborn Observer
-            p_v = params; p_v.stubborn.Theta = th_curr;
-            x_s = zeros(4, N); x_s(:,1)=x_t(:,1)-init_err;
-            Sig = max(abs(C*init_err))*ones(4,1);
-            
-            for k=1:N-1
-                u=2*sin(4*k*T_s); y=C*x_t(:,k)+nz(:,k);
-                [x_s(:,k+1), Sig] = observer_stubborn_finite_memory(x_s(:,k),u,y,Sig,p_v);
-            end
-            rmse_stub_curr(run) = sqrt(mean(vecnorm(x_t-x_s).^2));
-        end
-        
-        % Wilcoxon Rank Sum Test (Mann-Whitney) since runs are not strictly paired step-by-step here
+        % Wilcoxon Signed Rank Test (Paired) since we used same scenario
         % 'tail','right' -> checks if Median(Nominal) > Median(Stubborn)
-        p_val = ranksum(rmse_nom_base, rmse_stub_curr, 'tail', 'right');
+        p_val = signrank(rmse_nom_base, rmse_stub_curr, 'tail', 'right');
         p_values_sweep(i) = p_val;
         
         fprintf('  Theta: %.3f -> p-value: %.5f\n', th_curr, p_val);
