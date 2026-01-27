@@ -24,7 +24,6 @@ This project implements a simulation of a Flexible Joint Manipulator (FJM) to co
 
 - MATLAB
 - Control System Toolbox (for `dlqr` in `nominal_gainK.m`)
-- Parallel Computing Toolbox (optional, for `parfor` in Monte Carlo analysis)
 
 ## How to Run
 
