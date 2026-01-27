@@ -18,7 +18,7 @@ This project implements a simulation of a Flexible Joint Manipulator (FJM) to co
     - `disturbance_generator.m`: Generates measurement noise and outliers.
     - `plot_time_domain_comparison.m`: Plotting function for time-domain results.
     - `apply_custom_style.m`: Styling function for boxplots.
-    - 'run_rmse_experiment.m' : RMSE calculation.
+    - `run_rmse_experiment.m` : RMSE calculation.
 
 ## Prerequisites
 
