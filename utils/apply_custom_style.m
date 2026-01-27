@@ -1,37 +1,53 @@
-function apply_custom_style(h, data_nom, data_stub)
-    % h: handles del boxplot
-    % data_nom: vettore dati nominali
-    % data_stub: vettore dati stubborn
-    col_blue = [0, 0.4470, 0.7410];
-    col_red = [0.8500, 0.3250, 0.0980];
-    dataset = {data_nom, data_stub};
+function apply_custom_style(h, dataset, p)
+    % h: handlesboxplot
+    % dataset: matrice dei dati [N_RUNS x N_COLONNE]
+    % p: struct dei parametri  (params)
+
     n_groups = size(h, 2);
+    base_stub = p.style.c_stub; 
+    col_nom   = p.style.c_nom;
+    col_outlier = [0.8500, 0.3250, 0.0980]; 
+
     for i = 1:n_groups
-        % 1. BOX
-        set(h(5, i), 'Color', col_blue, 'LineWidth', 2.5);
-        % 2. BAFFI
-        set(h(1:2, i), 'Color', 'k', 'LineStyle', '--', 'LineWidth', 2);
-        % 3. CAPS
-        set(h(3:4, i), 'Color', 'k', 'LineStyle', '-', 'LineWidth', 2);
-        % 4. OUTLIERS
-        set(h(7, i), 'Marker', '*', 'MarkerEdgeColor', col_red, 'MarkerSize', 6);
-        % 5. MEDIANA
-        set(h(6, i), 'Color', 'r', 'LineWidth', 2, ...
-            'Marker', '.', 'MarkerSize', 15, 'MarkerEdgeColor','r', 'MarkerFaceColor','r');
-        % 6. MEDIA
-        this_data = dataset{i};
-        mean_val = mean(this_data, 'omitnan');
-        x_data_median = get(h(6, i), 'XData');
-        x_center = mean(x_data_median);
-        hold on;
-        plot(x_center, mean_val, 's', ...
-            'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'none', ...
-            'MarkerSize', 6);
+        % Logica del colore: Nominale vs Stubborn varianti
+        if i == 1
+            current_col = col_nom;
+        else
+            current_col = base_stub;
+        end
+
+        % 1. BOX (Corpo principale)
+        set(h(5, i), 'Color', current_col, 'LineWidth', 2.5);
+
+        % 2. BAFFI (Whiskers)
+        set(h(1:2, i), 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1.5);
+
+        % 3. CAPS (Linee terminali dei baffi)
+        set(h(3:4, i), 'Color', 'k', 'LineStyle', '-', 'LineWidth', 1.5);
+
+        % 4. OUTLIERS (Dati fuori range)
+        set(h(7, i), 'Marker', '*', 'MarkerEdgeColor', col_outlier, 'MarkerSize', 5);
+
+        % 5. MEDIANA (Linea centrale)
+        set(h(6, i), 'Color', current_col, 'LineWidth', 2, ...
+            'Marker', '.', 'MarkerSize', 12);
+
+        % % 6. MEDIA (Quadrato nero come nel tuo stile)
+        % % Accediamo alla colonna i-esima della matrice dataset
+        % this_data_col = dataset(:, i); 
+        % mean_val = mean(this_data_col, 'omitnan');
+        % 
+        % x_data_median = get(h(6, i), 'XData');
+        % x_center = mean(x_data_median);
+
+        
     end
+
     grid on; box on;
     ylabel('RMSE', 'Interpreter', 'latex', 'FontSize', 20);
     set(gca, 'FontSize', 20, 'TickLabelInterpreter', 'latex');
+
+    % Applichiamo i limiti che avevi impostato
     yticks([0 5 10 15 20]);
-    ylim([0 20])
-    set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 16);
+    ylim([0 20]);
 end
