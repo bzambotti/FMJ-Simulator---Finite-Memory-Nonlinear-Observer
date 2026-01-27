@@ -1,4 +1,4 @@
-%% FMJ Finite-Memory Stubborn Observer Implementation
+ %% FMJ Finite-Memory Stubborn Observer Implementation
 % Simulation of a Flexible Joint Manipulator (FJM) under measurement
 % outliers. Compares a Nominal Luenberger Observer vs. a Finite-Memory
 % Stubborn Observer.
@@ -6,8 +6,8 @@
 % Structure:
 % 1. Configuration
 % 2. Single Run Simulation (Dwell Time Condition)
-% 3. Monte Carlo Analysis (RMSE Boxplots)
-% 4. Transient Analysis (Effect of Threshold Theta)
+% 3. Transient Analysis (Effect of Threshold Theta)
+% 4. Monte Carlo Analysis (RMSE Boxplots)
 
 clear; clc; close all; format long;
 
@@ -18,11 +18,11 @@ addpath(genpath('observers'));
 addpath(genpath('utils'));
 
 % =============================================================
-% 1. CONFIGURATION & SETUP
+% CONFIGURATION & SETUP
 % =============================================================
 % --- Simulation Flags ---
 RUN_SINGLE_SIM = true;   % Run standard time-domain simulation
-RUN_MONTE_CARLO = true; % Run statistical analysis 
+RUN_MONTE_CARLO = true;  % Run statistical analysis 
 RUN_TRANSIENT = true;    % Run Theta sensitivity analysis
 RUN_BREAKDOWN = true;
 % --- General Settings ---
@@ -44,24 +44,20 @@ params.observer.L_nom = nominal_gainK(params);
 
 %% 
 % =============================================================
-% 2. SINGLE RUN SIMULATION (Nominal vs Stubborn)
+% 1. SINGLE RUN SIMULATION (Nominal vs Stubborn)
 % =============================================================
 
 if RUN_SINGLE_SIM
     fprintf('\n--- Starting Single Simulation ---\n');
-    
-    N = floor(T_sim / T_s);
     steps = 0:N-1;
     x0_error = 5 * [1; 0; -1; 0];
     dwell_times = [5, 2];
-    
-    % Usiamo una cell array per salvare i risultati dei due scenari
     results = cell(1, 2); 
 
     for i = 1:length(dwell_times)
         Tdwell = dwell_times(i);
         
-        % Inizializzazione locale per lo scenario corrente
+        % Local Initialization for Current Scenario
         res.x_true = zeros(4, N);
         res.x_hat  = zeros(4, N); 
         if i == 2 
@@ -76,7 +72,7 @@ if RUN_SINGLE_SIM
         sigma_val = max(abs(C * x0_error));
         Sigma_k   = sigma_val * ones(params.stubborn.tau, 1);
         
-        % Generazione disturbo specifica per questo Tdwell
+        % Noise Generation
         noise = disturbance_generator(f_bar, Tdwell, N, 2);
         
         % Simulation Loop
@@ -92,17 +88,13 @@ if RUN_SINGLE_SIM
             [res.x_stub(:, k+1), Sigma_k, ~] = observer_stubborn_finite_memory(...
                 res.x_stub(:, k), u_k, y_meas_k, Sigma_k, params);
         end
-        
-        % Salviamo la struct temporanea nella cell array
         results{i} = res;
     end
-
-    % Chiamata alla funzione usando gli indici della cell array
-    figure(2)
+    figure(1)
     plot_time_domain_comparison(steps, results{1}, results{2}, params)
 end
 %% =============================================================
-% ----------------------- TRANSIENT --------------------------
+%  2. TRANSIENT ANALYSIS
 % ==============================================================
 if RUN_TRANSIENT
     fprintf('\n--- Starting Theta Sensitivity Analysis ---\n');
@@ -127,7 +119,7 @@ if RUN_TRANSIENT
     end
     err_nom = vecnorm(x_t - x_h);
     
-    figure();
+    figure(2);
     hold on; grid on;
     for i = 1:length(Theta_vals)
         p_sens = params;
@@ -172,7 +164,7 @@ if RUN_MONTE_CARLO
     fprintf('\n--- Starting Monte Carlo Analysis with Theta Sensitivity ---\n');
     
     % Settings
-    N_RUNS = 10; % Reduced for testing (use 1000/10000 for paper)
+    N_RUNS = 10; % Reduced for testing 
     theta_test = [0.02, 0.5, 10]; 
     scenarios = struct('dwell', {5, 2}, 'name', {'Condition Validated ($T_d=5$)', 'Condition Violated ($T_d=2$)'});
     
@@ -189,54 +181,7 @@ if RUN_MONTE_CARLO
         results = zeros(N_RUNS, num_cols);
         
         parfor run = 1:N_RUNS
-            local_res = zeros(1, num_cols);
-            
-            % Random Init
-            bound = 0.5;
-            init_err = (rand(4,1) - 0.5) * 2 * bound; 
-            
-            % True Trajectory
-            x_t = zeros(4, N);
-            
-            % Noise Generation
-            nz = disturbance_generator(20, dwell, N, 2);
-            
-            % Simulate Plant
-            for k = 1:N-1
-                u_k = 2 * sin(4 * k * T_s);
-                x_t(:, k+1) = simulate_FMJ(x_t(:, k), u_k, params);
-            end
-            
-            % 1. Nominal Observer
-            x_h = zeros(4, N); 
-            x_h(:,1) = x_t(:,1) - init_err;
-            
-            for k = 1:N-1
-                u_k = 2 * sin(4 * k * T_s);
-                y_k = C * x_t(:, k) + nz(:, k);
-                x_h(:, k+1) = observer_FMJ(x_h(:, k), u_k, y_k, params);
-            end
-            local_res(1) = sqrt(mean(vecnorm(x_t - x_h).^2)); 
-            
-            % 2. Stubborn Variants
-            for j = 1:length(theta_test)
-                p_v = params;
-                p_v.stubborn.Theta = theta_test(j);
-                
-                x_s = zeros(4, N); 
-                x_s(:,1) = x_t(:,1) - init_err;
-                Sig_v = max(abs(C * init_err)) * ones(params.stubborn.tau, 1);
-                
-                for k = 1:N-1
-                    u_k = 2 * sin(4 * k * T_s);
-                    y_k = C * x_t(:, k) + nz(:, k);
-                    [x_s(:, k+1), Sig_v, ~] = observer_stubborn_finite_memory(...
-                        x_s(:, k), u_k, y_k, Sig_v, p_v);
-                end
-                local_res(j+1) = sqrt(mean(vecnorm(x_t - x_s).^2));
-            end
-            
-            results(run, :) = local_res;
+            results(run, :) = run_rmse_experiment(params, N, T_s, f_bar, dwell, theta_test);
         end
         
         % --- PLOTTING BOXPLOTS ---
@@ -258,9 +203,9 @@ if RUN_MONTE_CARLO
         fprintf('  -> Wilcoxon Test (Nom vs Stub_Opt): p-value = %.5e\n', p_val);
     end
     
-    f = gcf;
-    set(f, 'Units', 'centimeters', 'Position', [10 10 19*4/3 9*4/3]);
-    set(f, 'PaperPositionMode', 'auto');
+    %f = gcf;
+    %set(f, 'Units', 'centimeters', 'Position', [10 10 19*4/3 9*4/3]);
+    %set(f, 'PaperPositionMode', 'auto');
     % exportgraphics(f, 'Figure_Boxplots.pdf', 'ContentType', 'vector');
 end
 
@@ -271,78 +216,37 @@ if RUN_BREAKDOWN
     fprintf('\n--- Starting Breakdown Analysis (Finding Theta_max) ---\n');
     
     % Sweep parameters
-    theta_sweep = logspace(log10(4), log10(5), 10); % 20 points from 0.01 to 5
+    theta_sweep = logspace(log10(4), log10(5), 10); 
     p_values_sweep = zeros(size(theta_sweep));
-    N_TEST_RUNS = 1000; % Reduced for speed (increase for precision)
+    N_TEST_RUNS = 10; % Reduced for speed (increase for precision)
     
-    % Use T_dwell = 5 (Standard valid condition)
+    % Use T_dwell = 5
     Tdwell_BD = 5;
     
-    % Pre-calculate Nominal Baseline once (it doesn't change with Theta)
-    fprintf('  Calculating baseline...\n');
-    rmse_nom_base = zeros(N_TEST_RUNS, 1);
+    all_results = zeros(N_TEST_RUNS, 1 + length(theta_sweep));
     
-    % We need to store seeds or re-generate same noise for paired test?
-    % For Breakdown analysis, we re-run loop cleanly.
-    
+    fprintf('  Running parallel simulations...\n');
     parfor run = 1:N_TEST_RUNS
-        % Setup run (same logic as MC)
-        bound = 0.5;
-        init_err = (rand(4,1) - 0.5) * 2 * bound; 
-        nz = disturbance_generator(20, Tdwell_BD, N, 2);
-        
-        % Plant
-        x_t = zeros(4, N);
-        for k=1:N-1, x_t(:,k+1)=simulate_FMJ(x_t(:,k), 2*sin(4*k*T_s), params); end
-        
-        % Nominal Observer
-        x_h = zeros(4, N); x_h(:,1)=x_t(:,1)-init_err;
-        for k=1:N-1
-             u=2*sin(4*k*T_s); y=C*x_t(:,k)+nz(:,k);
-             x_h(:,k+1)=observer_FMJ(x_h(:,k),u,y,params);
-        end
-        rmse_nom_base(run) = sqrt(mean(vecnorm(x_t-x_h).^2));
+        all_results(run, :) = run_rmse_experiment(params, N, T_s, f_bar, Tdwell_BD, theta_sweep);
     end
-
-    % Loop over Theta values
+    
+    rmse_nom_base = all_results(:, 1);
+    rmse_stub_matrix = all_results(:, 2:end);
+    
+    % Loop over Theta values for statistical test
     for i = 1:length(theta_sweep)
         th_curr = theta_sweep(i);
-        rmse_stub_curr = zeros(N_TEST_RUNS, 1);
+        rmse_stub_curr = rmse_stub_matrix(:, i);
         
-        % We must re-generate SIMILAR statistical conditions.
-        % Ideally, we should reuse the exact same noise matrix, but for 
-        % statistical breakdown across 200 runs, independent sampling is ok 
-        % IF we use 'ranksum' (unpaired) or if we are careful.
-        % Let's use simplified re-generation for speed/clarity here.
-        
-        parfor run = 1:N_TEST_RUNS
-            % Re-gen (Statistically identical conditions)
-            bound = 0.5;
-            init_err = (rand(4,1) - 0.5) * 2 * bound; 
-            nz = disturbance_generator(20, Tdwell_BD, N, 2);
-            
-            % Plant
-            x_t = zeros(4, N);
-            for k=1:N-1, x_t(:,k+1)=simulate_FMJ(x_t(:,k), 2*sin(4*k*T_s), params); end
-            
-            % Stubborn Observer
-            p_v = params; p_v.stubborn.Theta = th_curr;
-            x_s = zeros(4, N); x_s(:,1)=x_t(:,1)-init_err;
-            Sig = max(abs(C*init_err))*ones(4,1);
-            
-            for k=1:N-1
-                u=2*sin(4*k*T_s); y=C*x_t(:,k)+nz(:,k);
-                [x_s(:,k+1), Sig] = observer_stubborn_finite_memory(x_s(:,k),u,y,Sig,p_v);
-            end
-            rmse_stub_curr(run) = sqrt(mean(vecnorm(x_t-x_s).^2));
-        end
-        
-        % Wilcoxon Rank Sum Test (Mann-Whitney) since runs are not strictly paired step-by-step here
+        % Wilcoxon Signed Rank Test (Paired) since we used same scenario
         % 'tail','right' -> checks if Median(Nominal) > Median(Stubborn)
-        p_val = ranksum(rmse_nom_base, rmse_stub_curr, 'tail', 'right');
+        p_val = signrank(rmse_nom_base, rmse_stub_curr, 'tail', 'right');
         p_values_sweep(i) = p_val;
         
         fprintf('  Theta: %.3f -> p-value: %.5f\n', th_curr, p_val);
     end
 end
+
+
+
 
