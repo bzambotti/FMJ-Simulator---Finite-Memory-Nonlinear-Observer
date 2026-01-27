@@ -180,7 +180,7 @@ if RUN_MONTE_CARLO
         num_cols = 1 + length(theta_test);
         results = zeros(N_RUNS, num_cols);
         
-        parfor run = 1:N_RUNS
+        for run = 1:N_RUNS
             results(run, :) = run_rmse_experiment(params, N, T_s, f_bar, dwell, theta_test);
         end
         
