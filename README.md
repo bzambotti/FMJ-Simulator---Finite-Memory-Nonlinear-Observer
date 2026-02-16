@@ -2,7 +2,7 @@
 
 This repository implements the simulations presented in the manuscript:
 
-Zambotti, B., et al. "Finite-Memory Stubborn Observer for Flexible Joint Manipulator," submitted to IEEE Transactions on Automatic Control, February 2026.Preprint available on HAL: https://hal.science/hal-05509568
+Zambotti, B., et al. "Finite-Memory Stubborn Observer for Flexible Joint Manipulator," submitted to IEEE Transactions on Automatic Control, February 2026. Preprint available on HAL: https://hal.science/hal-05509568
 
 We simulate a Flexible Joint Manipulator (FJM) to compare the performance of a Nominal Luenberger Observer against a Finite-Memory Stubborn Observer under measurement outliers.
 
