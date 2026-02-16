@@ -1,6 +1,15 @@
 # Finite-Memory Stubborn Observer for Flexible Joint Manipulator
 
-This project implements a simulation of a Flexible Joint Manipulator (FJM) to compare the performance of a Nominal Luenberger Observer against a Finite-Memory Stubborn Observer under measurement outliers.
+This repository implements the simulations presented in the manuscript:
+
+Zambotti, B., et al.  
+"Finite-Memory Stubborn Observer for Flexible Joint Manipulator,"  
+submitted to IEEE Transactions on Automatic Control, February 2026.
+
+Preprint available on HAL: https://hal.science/hal-05509568
+
+
+We simulate a Flexible Joint Manipulator (FJM) to compare the performance of a Nominal Luenberger Observer against a Finite-Memory Stubborn Observer under measurement outliers.
 
 ## Project Structure
 
@@ -38,3 +47,21 @@ Inside `main.m`, you can toggle the following flags to enable/disable specific a
 - `RUN_SINGLE_SIM`: Runs a standard time-domain simulation (Single run).
 - `RUN_MONTE_CARLO`: Runs a statistical analysis using Monte Carlo simulations (Multiple runs).
 - `RUN_TRANSIENT`: Runs a sensitivity analysis on the threshold parameter Theta.
+
+
+## Citation
+
+If you use this code, please cite:
+
+```bibtex
+@unpublished{zambotti:hal-05509568,
+  TITLE = {Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign},
+  AUTHOR = {Zambotti, Beatrice and Andrieu, Vincent and Astolfi, Daniele and Bako, Laurent and Nadri, Madiha and Zaccarian, Luca},
+  URL = {https://hal.science/hal-05509568},
+  NOTE = {working paper or preprint},
+  YEAR = {2026},
+  MONTH = Feb,
+  PDF = {https://hal.science/hal-05509568v1/file/TAC26.pdf},
+  HAL_ID = {hal-05509568},
+  HAL_VERSION = {v1},
+}
