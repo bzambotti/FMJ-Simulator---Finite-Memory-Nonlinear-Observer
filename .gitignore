@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# MATLAB autosave / backup / temporary files
+*.asv
+*.m~
+*.autosave
+*.mex*
+slprj/
+codegen/
+*.slxc
+octave-workspace
+
+# Generated data and figures (regenerate with main.m)
+*.mat
+figures/*
+!figures/.gitkeep
+
+# Solver licenses: never commit
+*.lic
+mosek.lic

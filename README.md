@@ -1,62 +1,73 @@
-# Finite-Memory Stubborn Observer for Flexible Joint Manipulator
+# FMJ Simulator: Finite-Memory Stubborn Observer
 
-This repository implements the simulations presented in the manuscript:
+MATLAB code for the simulation section (flexible joint manipulator example) of the paper:
 
-Zambotti, B., et al. "Finite-Memory Stubborn Observer for Flexible Joint Manipulator," submitted to IEEE Transactions on Automatic Control, February 2026. Preprint available on HAL: https://hal.science/hal-05509568
+B. Zambotti, V. Andrieu, D. Astolfi, L. Bako, M. Nadri, L. Zaccarian, *Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign*. Preprint: https://hal.science/hal-05509568
 
-We simulate a Flexible Joint Manipulator (FJM) to compare the performance of a Nominal Luenberger Observer against a Finite-Memory Stubborn Observer under measurement outliers.
+The code compares the nominal observer (102), the proposed finite-memory stubborn observer (103) and the classical scalar stubborn observer (104) on a single-link flexible joint manipulator with friction, under sporadic measurement outliers.
 
-## Project Structure
+## Requirements
 
-- `main.m`: The main entry point for the simulation. It configures the system, runs simulations, and generates plots.
-- `config/`: Contains configuration files.
-    - `get_FJM_config.m`: Defines system matrices, physical parameters, and simulation settings.
-- `dynamics/`: Contains system dynamics models.
-    - `simulate_FMJ.m`: Simulates the FJM state update.
-    - `nonlinear_term.m`: Computes nonlinear terms (friction, gravity).
-- `observers/`: Contains observer implementations.
-    - `observer_FMJ.m`: Nominal Luenberger Observer.
-    - `observer_stubborn_finite_memory.m`: Finite-Memory Stubborn Observer.
-    - `nominal_gainK.m`: Computes the nominal observer gain (requires Control System Toolbox).
-- `utils/`: Utility functions.
-    - `disturbance_generator.m`: Generates measurement noise and outliers.
-    - `plot_time_domain_comparison.m`: Plotting function for time-domain results.
-    - `apply_custom_style.m`: Styling function for boxplots.
-    - `run_rmse_experiment.m` : RMSE calculation.
+- MATLAB R2020a or newer (uses `tiledlayout` and `exportgraphics`)
+- [YALMIP](https://yalmip.github.io/) (LMI for the nominal observer gain)
+- [MOSEK](https://www.mosek.com/) with a valid license (SDP solver called by YALMIP). The license file is personal and is not part of this repository.
+- Statistics and Machine Learning Toolbox (`boxplot`, `signrank`, used only for Fig. 4)
 
-## Prerequisites
+YALMIP and MOSEK must be on the MATLAB path.
 
-- MATLAB
-- Control System Toolbox (for `dlqr` in `nominal_gainK.m`)
+## How to run
 
-## How to Run
+```matlab
+cd FMJ-Simulator---Finite-Memory-Nonlinear-Observer
+main
+```
 
-1.  Open MATLAB.
-2.  Navigate to the `FMJ_Simulation` folder.
-3.  Run `main.m`.
+`main.m` adds the subfolders to the path, fixes the random seed (`rng(1, 'twister')`), computes the nominal gain with YALMIP/MOSEK, checks that `A - L*C` is Schur, prints the bound Theta*_lin of eq. (41) and saves all figures as PDF in `figures/`.
 
-## Simulation Modes
+Fig. 4 uses 10^4 Monte Carlo runs per scenario, as in the paper, and is the slowest part. To skip it set `RUN_MONTE_CARLO = false`, or lower `N_RUNS` for a quick test, at the top of `main.m`. The figures are generated in a fixed order after a single seed, so run them through `main.m` to obtain the same outlier realizations every time.
 
-Inside `main.m`, you can toggle the following flags to enable/disable specific analyses:
+## Which script produces which figure
 
-- `RUN_SINGLE_SIM`: Runs a standard time-domain simulation (Single run).
-- `RUN_MONTE_CARLO`: Runs a statistical analysis using Monte Carlo simulations (Multiple runs).
-- `RUN_TRANSIENT`: Runs a sensitivity analysis on the threshold parameter Theta.
+| Paper figure | Content | Script | Output |
+|---|---|---|---|
+| Fig. 1 | State estimates x3, x4: nominal vs finite-memory vs scalar stubborn observer. Left: T_dwell = 3, non-zero initial conditions. Right: T_dwell = 1, zero initial conditions | `scripts/fig1_trajectories.m` | `figures/fig1_trajectories.pdf` |
+| Fig. 2 | Outlier rejection on y2 (T_dwell = 3, zero initial conditions): saturation band and measured output | `scripts/fig2_measurements.m` | `figures/fig2_measurements.pdf` |
+| Fig. 3 | Transient of the estimation error norm for several values of Theta (noise-free) | `scripts/fig3_theta_transient.m` | `figures/fig3_theta_transient.pdf` |
+| Fig. 4 | Monte Carlo RMSE boxplots, T_dwell = 3 and T_dwell = 1 | `scripts/fig4_montecarlo_rmse.m` | `figures/fig4_montecarlo_rmse.pdf` |
 
+## Repository structure
+
+```
+main.m                    regenerates all figures
+config/
+  get_FJM_config.m        plant matrices, friction, sampling time, tuning (tau = 3, Theta = 0.02), plot style
+dynamics/
+  simulate_FMJ.m          discrete-time FJM step  x+ = A x + B u + Ts*phi(x)
+  nonlinear_term.m        phi(x): motor friction (Stribeck + Coulomb) and gravity
+observers/
+  nominal_gainK.m         nominal gain L from the LMI of Zemouche & Boutayeb (2006), YALMIP + MOSEK
+  observer_FMJ.m          nominal observer (102)
+  observer_stubborn_finite_memory.m   finite-memory stubborn observer (103)
+  observer_stubborn_scalar.m          scalar stubborn observer (104)
+utils/
+  disturbance_generator.m sporadic outliers with dwell time (Definition 1)
+  run_rmse_experiment.m   one Monte Carlo run (Fig. 4)
+  compute_theta_star.m    closed-form bound Theta*_lin, eq. (41)
+  plot_time_domain_comparison.m, apply_custom_style.m, export_figure.m   plotting helpers
+scripts/
+  fig1_trajectories.m, fig2_measurements.m, fig3_theta_transient.m, fig4_montecarlo_rmse.m
+figures/                  output folder (generated PDFs are not tracked)
+```
 
 ## Citation
 
-If you use this code, please cite:
-
 ```bibtex
 @unpublished{zambotti:hal-05509568,
-  TITLE = {Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign},
+  TITLE  = {Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign},
   AUTHOR = {Zambotti, Beatrice and Andrieu, Vincent and Astolfi, Daniele and Bako, Laurent and Nadri, Madiha and Zaccarian, Luca},
-  URL = {https://hal.science/hal-05509568},
-  NOTE = {working paper or preprint},
-  YEAR = {2026},
-  MONTH = Feb,
-  PDF = {https://hal.science/hal-05509568v1/file/TAC26.pdf},
+  URL    = {https://hal.science/hal-05509568},
+  NOTE   = {working paper or preprint},
+  YEAR   = {2026},
   HAL_ID = {hal-05509568},
-  HAL_VERSION = {v1},
 }
+```

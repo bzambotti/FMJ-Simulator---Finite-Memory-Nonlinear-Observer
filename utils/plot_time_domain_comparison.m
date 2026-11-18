@@ -1,43 +1,42 @@
-function plot_time_domain_comparison(steps, data_dt5, data_dt2, p)
-    % data_dt5 e data_dt2 are struct containing
-    % x_true, x_hat, x_stub
-   
-    t = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
-    
-    % --- COLUMN 1: Dwell Time = 5 ---
-    % State x3 (DT=5)
-    nexttile; hold on; grid on; box on;
-    plot_state(steps, data_dt5.x_true(3,:), data_dt5.x_stub(3,:), data_dt5.x_hat(3,:), p);
-    ylabel('$x_3$', 'Interpreter','latex',  'FontSize', 20);
-    legend('True', 'Stubborn', 'Nominal', 'Location', 'southwest', 'Interpreter', 'latex', 'FontSize', 16);
-    ylim([-8 8]);
+function plot_time_domain_comparison(steps, data_left, data_right, p)
+%PLOT_TIME_DOMAIN_COMPARISON 2x2 layout of Fig. 1 (states x3 and x4).
+%   data_left / data_right are structs with fields x_true, x_hat, x_stub,
+%   x_scal (left: T_dwell = 3, right: T_dwell = 1).
 
-    % State x4 (DT=5)
+    tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+    % Left column
+    nexttile(1); hold on; grid on; box on;
+    plot_state(steps, data_left, 3, p);
+    ylabel('$x_3$', 'Interpreter', 'latex', 'FontSize', 18);
+    legend('True', 'Nominal', 'Scalar', 'Finite Memory', 'Location', 'northeast', ...
+           'Interpreter', 'latex', 'FontSize', 12, 'NumColumns', 2);
+    ylim([-8 8]);
+    set(gca, 'FontSize', 12, 'TickLabelInterpreter', 'latex');
+
     nexttile(3); hold on; grid on; box on;
-    plot_state(steps, data_dt5.x_true(4,:), data_dt5.x_stub(4,:), data_dt5.x_hat(4,:), p);
-    ylabel('$x_4$', 'Interpreter','latex',  'FontSize', 20);
-    legend('True', 'Stubborn', 'Nominal', 'Location', 'southwest', 'Interpreter', 'latex', 'FontSize', 16);
-    xlabel('$k$', 'Interpreter','latex',  'FontSize', 20);
+    plot_state(steps, data_left, 4, p);
+    ylabel('$x_4$', 'Interpreter', 'latex', 'FontSize', 18);
+    xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 18);
     ylim([-15 15]);
+    set(gca, 'FontSize', 12, 'TickLabelInterpreter', 'latex');
 
-    % --- COLUMN 2: Dwell Time = 2 ---
-    % State x3 (DT=2)
+    % Right column
     nexttile(2); hold on; grid on; box on;
-    plot_state(steps, data_dt2.x_true(3,:), data_dt2.x_stub(3,:), data_dt2.x_hat(3,:), p);
-    legend('True', 'Stubborn', 'Nominal', 'Location', 'southwest', 'Interpreter', 'latex', 'FontSize', 16);
+    plot_state(steps, data_right, 3, p);
     ylim([-8 8]);
+    set(gca, 'FontSize', 12, 'TickLabelInterpreter', 'latex');
 
-    % State x4 (DT=2)
     nexttile(4); hold on; grid on; box on;
-    plot_state(steps, data_dt2.x_true(4,:), data_dt2.x_stub(4,:), data_dt2.x_hat(4,:), p);
-    xlabel('$k$', 'Interpreter','latex', 'FontSize', 20);
-    legend('True', 'Stubborn', 'Nominal', 'Location', 'southwest', 'Interpreter', 'latex', 'FontSize', 16);
+    plot_state(steps, data_right, 4, p);
+    xlabel('$k$', 'Interpreter', 'latex', 'FontSize', 18);
     ylim([-15 15]);
-
+    set(gca, 'FontSize', 12, 'TickLabelInterpreter', 'latex');
 end
 
-function plot_state(steps, x_t, x_s, x_h, p)
-    plot(steps, x_t, 'Color', p.style.c_true, 'LineWidth', p.style.lw_true);
-    plot(steps, x_s, '--', 'Color', p.style.c_stub, 'LineWidth', p.style.lw_stub);
-    plot(steps, x_h, '--', 'Color', p.style.c_nom, 'LineWidth', p.style.lw_nom);
+function plot_state(steps, d, i, p)
+    plot(steps, d.x_true(i,:), 'Color', p.style.c_true, 'LineWidth', p.style.lw_true);        % true
+    plot(steps, d.x_hat(i,:),  ':',  'Color', p.style.c_nom,  'LineWidth', p.style.lw_nom);   % nominal (102)
+    plot(steps, d.x_scal(i,:), '-.', 'Color', p.style.c_scal, 'LineWidth', p.style.lw_stub);  % scalar (104)
+    plot(steps, d.x_stub(i,:), '--', 'Color', p.style.c_stub, 'LineWidth', p.style.lw_stub);  % finite memory (103)
 end
