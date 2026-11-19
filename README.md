@@ -62,12 +62,16 @@ figures/                  output folder (generated PDFs are not tracked)
 ## Citation
 
 ```bibtex
-@unpublished{zambotti:hal-05509568,
-  TITLE  = {Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign},
+@unpublished{zambottii_2026_exact,
+  TITLE = {{Exact Outlier Cancellation in Discrete-Time Observers via Stubborn Redesign}},
   AUTHOR = {Zambotti, Beatrice and Andrieu, Vincent and Astolfi, Daniele and Bako, Laurent and Nadri, Madiha and Zaccarian, Luca},
-  URL    = {https://hal.science/hal-05509568},
-  NOTE   = {working paper or preprint},
-  YEAR   = {2026},
+  URL = {https://hal.science/hal-05509568},
+  NOTE = {working paper or preprint},
+  HAL_LOCAL_REFERENCE = {Rapport LAAS n{\textdegree} 26033},
+  YEAR = {2026},
+  MONTH = Nov,
+  PDF = {https://hal.science/hal-05509568v2/file/TAC2026_Stubborn_observer_for_discrete_time_nonlinear_systems.pdf},
   HAL_ID = {hal-05509568},
+  HAL_VERSION = {v2},
 }
 ```
